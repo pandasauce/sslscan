@@ -15,24 +15,22 @@ ifneq ($(BUILD_32BIT),)
   DEFINES=-DBUILD_32BIT=1
 endif
 
-ifeq ($(shell uname), Linux)
-  MINGW32=$(shell which i586-mingw32msvc-gcc)
-  ifneq ($(MINGW32),)
-    CC=$(MINGW32)
-    ARCHITECTURE=32-bit
-    CC_PREFIX=i586-mingw32msvc-
-    OPENSSL_TARGET=mingw
-  endif
+MINGW32=$(shell which i586-mingw32msvc-gcc)
+ifneq ($(MINGW32),)
+CC=$(MINGW32)
+ARCHITECTURE=32-bit
+CC_PREFIX=i586-mingw32msvc-
+OPENSSL_TARGET=mingw
+endif
 
-  MINGW64=$(shell which x86_64-w64-mingw32-gcc)
-  ifneq ($(MINGW64),)
-    ifeq ($(BUILD_32BIT),)
-      CC=$(MINGW64)
-      ARCHITECTURE=64-bit
-      CC_PREFIX=x86_64-w64-mingw32-
-      OPENSSL_TARGET=mingw64
-    endif
-  endif
+MINGW64=$(shell which x86_64-w64-mingw32-gcc)
+ifneq ($(MINGW64),)
+ifeq ($(BUILD_32BIT),)
+  CC=$(MINGW64)
+  ARCHITECTURE=64-bit
+  CC_PREFIX=x86_64-w64-mingw32-
+  OPENSSL_TARGET=mingw64
+endif
 endif
 
 ifndef CC
@@ -64,16 +62,16 @@ all: sslscan
 zlibpull:
 #	If the zlib dir already exists, issue a pull, otherwise clone it from GitHub.  Either way, check out the latest tag.
 	if [ -d zlib_mingw -a -d zlib_mingw/.git ]; then \
-		cd ./zlib_mingw && git pull && git checkout tags/`git describe --abbrev=0 --tags` ; \
+		cd ./zlib_mingw && git pull && git checkout tags/v1.2.11-windows ; \
 	else \
-		git clone --depth 1 https://github.com/madler/zlib ./zlib_mingw && cd ./zlib_mingw && git checkout tags/`git describe --abbrev=0` ; \
+		git clone --depth 1 https://github.com/pandasauce/zlib ./zlib_mingw && cd ./zlib_mingw && git checkout tags/v1.2.11-windows ; \
 	fi
 
 opensslpull:
 	if [ -d openssl_mingw -a -d openssl_mingw/.git ]; then \
-		cd ./openssl_mingw && git checkout OpenSSL_1_0_2-stable && git pull | grep -q "Already up-to-date." && [ -e ../.openssl_mingw.is.fresh ] || touch ../.openssl_mingw.is.fresh ; \
+		cd ./openssl_mingw && git checkout windows && git pull | grep -q "Already up-to-date." && [ -e ../.openssl_mingw.is.fresh ] || touch ../.openssl_mingw.is.fresh ; \
 	else \
-		git clone --depth 1 -b OpenSSL_1_0_2-stable https://github.com/PeterMosmans/openssl ./openssl_mingw && cd ./openssl_mingw && touch ../.openssl_mingw.is.fresh ; \
+		git clone --depth 1 -b windows https://github.com/pandasauce/sslscan ./openssl_mingw && cd ./openssl_mingw && touch ../.openssl_mingw.is.fresh ; \
 	fi
 
 zlib_mingw/libz.a: zlibpull
@@ -88,7 +86,7 @@ openssl_mingw/libcrypto.a: openssl_mingw/Makefile
 
 sslscan: openssl_mingw/libcrypto.a sslscan.c
 	$(CC) $(CFLAGS) -DVERSION=\"$(VERSION)\" $(DEFINES) $(SECURITY_OPTIONS) $(LINK_OPTIONS) -o sslscan.exe sslscan.c openssl_mingw/libssl.a openssl_mingw/libcrypto.a zlib_mingw/libz.a $(LDFLAGS)
-	$(CC_PREFIX)strip sslscan.exe
+	strip sslscan.exe
 
 clean:
 	rm -f *.o sslscan.exe .openssl_mingw.is.fresh
